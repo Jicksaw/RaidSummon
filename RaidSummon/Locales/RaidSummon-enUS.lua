@@ -111,6 +111,9 @@ L["SummonAnnounceError"] = "|cff9482c9RaidSummon:|r Announce error"
 L["TargetMissmatch"] = function(X,Y)
 	return '|cff9482c9RaidSummon:|r Summoning aborted. Your target ' .. X .. ' does not match the name you clicked ' .. Y
 end
+L["TargetNearby"] = function(T)
+	return '|cff9482c9RaidSummon:|r Summoning aborted. Your target ' .. T .. ' is near you'
+end
 L["OptionKWList"] = "|cff9482c9RaidSummon:|r Summoning keyword list:"
 L["OptionKWAddDuplicate"] = function(V)
 	return '|cff9482c9RaidSummon:|r Keyword duplicate: ' .. V

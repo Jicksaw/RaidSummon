@@ -410,6 +410,11 @@ function RaidSummon:NameListButton_PreClick(source, button)
 				print(L["TargetMissmatch"](targetname, name))
 				return
 			end
+            
+            if UnitInRange("target") then
+                print(L["TargetNearby"](targetname))
+                return
+            end
 
 			if GetZoneText() == "" then
 				zonetext = nil
