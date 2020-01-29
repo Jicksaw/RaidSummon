@@ -415,6 +415,11 @@ function RaidSummon:NameListButton_PreClick(source, button)
                 print(L["TargetNearby"](targetname))
                 return
             end
+            
+            if UnitPower("player", SPELL_POWER_MANA ) < 300 then
+                print(L["OutOfMana"])
+                return
+            end
 
 			if GetZoneText() == "" then
 				zonetext = nil
