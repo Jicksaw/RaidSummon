@@ -760,7 +760,7 @@ function RaidSummon:ExecuteKWList()
 end
 
 function RaidSummon:SetKWAdd(info, input)
-	if (input) then
+	if (input) and input ~= "" then
 		if (RaidSummon:hasValue(self.db.profile.keywords, input)) then
 			print(L["OptionKWAddDuplicate"](input))
 		else
