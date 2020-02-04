@@ -279,7 +279,7 @@ end
 function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 	if (prefix) then
 		if prefix == COMM_PREFIX_ADD then
-			--print("COMM_PREFIX_ADD "..message)
+			print("COMM_PREFIX_ADD "..message)
 			--only add player once
 			if not RaidSummon:hasValue(RaidSummonSyncDB, message) then
 				--check if player is in the raid
@@ -294,7 +294,7 @@ function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 				end
 			end
 		elseif prefix == COMM_PREFIX_ADD_MANUAL then
-			--print("COMM_PREFIX_ADD_MANUAL "..message)
+			print("COMM_PREFIX_ADD_MANUAL "..message)
 			--only add player once
 			if not RaidSummon:hasValue(RaidSummonSyncDB, message) then
 				--check if player is in the raid
@@ -310,7 +310,7 @@ function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 				end
 			end
 		elseif prefix == COMM_PREFIX_REMOVE then
-			--print("COMM_PREFIX_REMOVE "..message)
+			print("COMM_PREFIX_REMOVE "..message)
 			if RaidSummon:hasValue(RaidSummonSyncDB, message) then
 				for i, v in ipairs (RaidSummonSyncDB) do
 					if v == message then
@@ -320,7 +320,7 @@ function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 				end
 			end
 		elseif prefix == COMM_PREFIX_REMOVE_MANUAL then
-			--print("COMM_PREFIX_REMOVE_MANUAL "..message)
+			print("COMM_PREFIX_REMOVE_MANUAL "..message)
 			if RaidSummon:hasValue(RaidSummonSyncDB, message) then
 				for i, v in ipairs (RaidSummonSyncDB) do
 					if v == message then
@@ -331,7 +331,7 @@ function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 				end
 			end
 		elseif prefix == COMM_PREFIX_ADD_ALL then
-			--print("COMM_PREFIX_ADD_ALL "..message)
+			print("COMM_PREFIX_ADD_ALL "..message)
 			if IsInRaid() then
 				local members = GetNumGroupMembers()
 				if (members > 0) then
