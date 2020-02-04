@@ -158,8 +158,8 @@ local options = {
 --set default options
 local defaults = {
 	profile = {
-		whisper = true,
-		zone = true,
+		whisper = false,
+		zone = false,
 		keywordsinit = false
 	}
 }
