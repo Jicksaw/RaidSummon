@@ -245,7 +245,7 @@ end
 
 --Handle CHAT_MSG Events here
 function RaidSummon:msgParser(eventName,...)
-	if eventName == "CHAT_MSG_SAY" or eventName == "CHAT_MSG_RAID" or eventName == "CHAT_MSG_PARTY" or eventName == "CHAT_MSG_RAID_LEADER" or eventName == "CHAT_MSG_YELL" or eventName == "CHAT_MSG_WHISPER" then
+	if eventName == "CHAT_MSG_RAID" or eventName == "CHAT_MSG_RAID_LEADER" then
 		local text, playerName, languageName, channelName, playerName2   = ...
 		
 		for i, v in ipairs(self.db.profile.keywords) do
