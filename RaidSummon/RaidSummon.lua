@@ -186,7 +186,7 @@ end
 
 function RaidSummon:OnDisable()
 	self:Print(L["AddonDisabled"])
-	RaidSummonSyncDB = {}
+	RaidSummonSyncList = RaidSummonLinkedList:New()
 end
 
 function RaidSummon:OnInitialize()
@@ -220,7 +220,7 @@ function RaidSummon:OnInitialize()
 	MSG_PREFIX_ADD_MANUAL = "RSAddManual"
 	MSG_PREFIX_REMOVE = "RSRemove"
 	MSG_PREFIX_REMOVE_MANUAL = "RSRemoveManual"
-	RaidSummonSyncDB = {}
+	RaidSummonSyncList = RaidSummonLinkedList:New()
 	
 	--Ace3 Comm Channels max 16 chars
 	COMM_PREFIX_ADD = "RSADD"
@@ -258,17 +258,17 @@ end
 
 --Clear the sync db and update the frame when joining or leaving a group/raid
 function RaidSummon:GroupEvent(eventName,...)
-	RaidSummonSyncDB = {}
+	RaidSummonSyncList = RaidSummonLinkedList:New()
 	RaidSummon:UpdateList()
 end
 
 --Hanlde raid changes and index changes
 function RaidSummon:GROUP_ROSTER_UPDATE(eventName,...)
 	RaidSummon:getRaidMembers()
-	if RaidSummonRaidMembersDB and RaidSummonSyncDB then
-		for RaidSummonSyncDBi, RaidSummonSyncDBv in ipairs (RaidSummonSyncDB) do
-			if not RaidSummon:hasValueSub(RaidSummonRaidMembersDB, RaidSummonSyncDBv, "rName") then
-				table.remove(RaidSummonSyncDB, RaidSummonSyncDBi)
+	if RaidSummonMembersTable and RaidSummonSyncList then
+		for name in RaidSummonSyncList:GetValuesIterator() do
+			if not RaidSummonMembersTable[name] then
+				RaidSummonSyncList:Remove(name)
 			end
 		end
 	end
@@ -277,92 +277,82 @@ end
 
 --Ace3 Comm
 function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
-	if (prefix) then
-		if prefix == COMM_PREFIX_ADD then
-			print("COMM_PREFIX_ADD "..message)
-			--only add player once
-			if not RaidSummon:hasValue(RaidSummonSyncDB, message) then
-				--check if player is in the raid
-				RaidSummon:getRaidMembers()
-				if RaidSummonRaidMembersDB then
-					for RaidMembersDBindex, RaidMembersDBvalue in ipairs (RaidSummonRaidMembersDB) do
-						if message == RaidMembersDBvalue.rName then
-							table.insert(RaidSummonSyncDB, message)
-							RaidSummon:UpdateList()
-						end
-					end
-				end
-			end
-		elseif prefix == COMM_PREFIX_ADD_MANUAL then
-			print("COMM_PREFIX_ADD_MANUAL "..message)
-			--only add player once
-			if not RaidSummon:hasValue(RaidSummonSyncDB, message) then
-				--check if player is in the raid
-				RaidSummon:getRaidMembers()
-				if RaidSummonRaidMembersDB then
-					for RaidMembersDBindex, RaidMembersDBvalue in ipairs (RaidSummonRaidMembersDB) do
-						if message == RaidMembersDBvalue.rName then
-							table.insert(RaidSummonSyncDB, message)
-							print(L["MemberAdded"](message,sender))
-							RaidSummon:UpdateList()
-						end
-					end
-				end
-			end
-		elseif prefix == COMM_PREFIX_REMOVE then
-			print("COMM_PREFIX_REMOVE "..message)
-			if RaidSummon:hasValue(RaidSummonSyncDB, message) then
-				for i, v in ipairs (RaidSummonSyncDB) do
-					if v == message then
-						table.remove(RaidSummonSyncDB, i)
-						RaidSummon:UpdateList()
-					end
-				end
-			end
-		elseif prefix == COMM_PREFIX_REMOVE_MANUAL then
-			print("COMM_PREFIX_REMOVE_MANUAL "..message)
-			if RaidSummon:hasValue(RaidSummonSyncDB, message) then
-				for i, v in ipairs (RaidSummonSyncDB) do
-					if v == message then
-						table.remove(RaidSummonSyncDB, i)
-						print(L["MemberRemoved"](message,sender))
-						RaidSummon:UpdateList()
-					end
-				end
-			end
-		elseif prefix == COMM_PREFIX_ADD_ALL then
-			print("COMM_PREFIX_ADD_ALL "..message)
-			if IsInRaid() then
-				local members = GetNumGroupMembers()
-				if (members > 0) then
-				
-				if GetZoneText() == "" then
-					zonetext = nil
-				else
-					zonetext = GetZoneText()
-				end
+	if not prefix then
+		return
+	end
 
-					for i = 1, members do
-						local rName, rRank, rSubgroup, rLevel, rClass, rfileName, rZone = GetRaidRosterInfo(i)
-						
-						--only add the player if not in the current zone
-						if rName and zonetext ~= rZone then
-							if not RaidSummon:hasValue(RaidSummonSyncDB, rName) then
-								--check if player is in the raid
-								RaidSummon:getRaidMembers()
-								if RaidSummonRaidMembersDB then
-									for RaidMembersDBindex, RaidMembersDBvalue in ipairs (RaidSummonRaidMembersDB) do
-										if rName == RaidMembersDBvalue.rName then
-											table.insert(RaidSummonSyncDB, rName)
-										end
-									end
-								end
+	if prefix == COMM_PREFIX_ADD then
+		print("COMM_PREFIX_ADD "..message)
+		--only add player once
+		if not RaidSummonSyncList:HasValue(message) then
+			--check if player is in the raid
+			RaidSummon:getRaidMembers()
+			if RaidSummonMembersTable and RaidSummonMembersTable[message] then
+				if RaidSummonMembersTable[message].rFileName == "WARLOCK" then
+					RaidSummonSyncList:Prepend(message)
+				else
+					RaidSummonSyncList:Append(message)
+				end
+				RaidSummon:UpdateList()
+			end
+		else
+			print("Player already in list: " .. message)
+		end
+	elseif prefix == COMM_PREFIX_ADD_MANUAL then
+		print("COMM_PREFIX_ADD_MANUAL "..message)
+		--only add player once
+		if not RaidSummonSyncList:HasValue(message) then
+			--check if player is in the raid
+			RaidSummon:getRaidMembers()
+			if RaidSummonMembersTable and RaidSummonMembersTable[message] then
+				if RaidSummonMembersTable[message].rFileName == "WARLOCK" then
+					RaidSummonSyncList:Prepend(message)
+				else
+					RaidSummonSyncList:Append(message)
+				end
+				print(L["MemberAdded"](message,sender))
+				RaidSummon:UpdateList()
+			end
+		end
+	elseif prefix == COMM_PREFIX_REMOVE then
+		print("COMM_PREFIX_REMOVE "..message)
+		if RaidSummonSyncList:Remove(message) then
+			RaidSummon:UpdateList()
+		end
+	elseif prefix == COMM_PREFIX_REMOVE_MANUAL then
+		print("COMM_PREFIX_REMOVE_MANUAL "..message)
+		if RaidSummonSyncList:Remove(message) then
+			print(L["MemberRemoved"](message,sender))
+			RaidSummon:UpdateList()
+		end
+	elseif prefix == COMM_PREFIX_ADD_ALL then
+		print("COMM_PREFIX_ADD_ALL "..message)
+		if IsInRaid() then
+			local members = GetNumGroupMembers()
+			if (members > 0) then
+			
+			if GetZoneText() == "" then
+				zonetext = nil
+			else
+				zonetext = GetZoneText()
+			end
+
+				for i = 1, members do
+					local rName, rRank, rSubgroup, rLevel, rClass, rFileName, rZone = GetRaidRosterInfo(i)
+					
+					--only add the player if not in the current zone
+					if rName and zonetext ~= rZone then
+						if not RaidSummonSyncList:HasValue(rName) then
+							--check if player is in the raid
+							RaidSummon:getRaidMembers()
+							if RaidSummonSyncList then
+								RaidSummonSyncList:Append(rName)
 							end
 						end
 					end
-					RaidSummon:UpdateList()
-					print(L["AddAllMessage"])
 				end
+				RaidSummon:UpdateList()
+				print(L["AddAllMessage"])
 			end
 		end
 	end
@@ -370,27 +360,20 @@ end
 
 --GUI
 function RaidSummon:NameListButton_PreClick(source, button)
-
 	local buttonname = source:GetName()
 	local name = _G[buttonname.."TextName"]:GetText()
 	local buttonName = GetMouseButtonClicked()
 	local targetname, targetrealm = UnitName("target")
 
-	RaidSummon:getRaidMembers()
-
-	if RaidSummonRaidMembersDB then
-		for i, v in ipairs (RaidSummonRaidMembersDB) do
-			if v.rName == name then
-				raidIndex = "raid"..v.rIndex
-			end
-		end
+	if RaidSummonMembersTable then
+		raidIndex = RaidSummonMembersTable[name].rIndex
 
 		if raidIndex then
 			--set target when not in combat (securetemplate)
 			if not InCombatLockdown() then
-				if RaidSummonRaidMembersDB then
+				if RaidSummonSyncList.start then
 					source:SetAttribute("type1", "target")
-					source:SetAttribute("unit", raidIndex)
+					source:SetAttribute("unit", "raid" .. raidIndex)
 				end
 				source:SetAttribute("type2", "spell")
 				source:SetAttribute("spell", "698") --698 - Ritual of Summoning
@@ -402,7 +385,7 @@ function RaidSummon:NameListButton_PreClick(source, button)
 
 	if buttonName == "RightButton" and targetname ~= nil and not InCombatLockdown() then
 
-		if RaidSummonRaidMembersDB then
+		if RaidSummonMembersTable then
 		
 			--Summoning does only work when the player has a target
 			--check if the clicked name is the current target
@@ -451,19 +434,15 @@ function RaidSummon:NameListButton_PreClick(source, button)
 			else
 				print(L["SummonAnnounceError"])
 			end
-			for i, v in ipairs (RaidSummonSyncDB) do
-				if v == targetname then
-					RaidSummon:SendCommMessage(COMM_PREFIX_REMOVE, targetname, "RAID")
-				end
+			if RaidSummonSyncList:HasValue(targetname) then
+				RaidSummon:SendCommMessage(COMM_PREFIX_REMOVE, targetname, "RAID")
 			end
 		else
 			print(L["noRaid"])
 		end
 	elseif buttonName == "LeftButton" and IsControlKeyDown() then
-		for i, v in ipairs (RaidSummonSyncDB) do
-			if v == name then
-				RaidSummon:SendCommMessage(COMM_PREFIX_REMOVE_MANUAL, name, "RAID")
-			end
+		if RaidSummonSyncList:HasValue(name) then
+			RaidSummon:SendCommMessage(COMM_PREFIX_REMOVE_MANUAL, name, "RAID")
 		end
 	end
 
@@ -471,119 +450,76 @@ function RaidSummon:NameListButton_PreClick(source, button)
 end
 
 function RaidSummon:UpdateList()
-
-	local RaidSummonBrowseDB = {}
-
 	--only Update and show if Player is Warlock
 	local className, classFilename, classID = UnitClass("player")
-	if classFilename == "WARLOCK" then
+	if classFilename ~= "WARLOCK" then
+		return
+	end
 
-		if IsInRaid() then
-
-			--get raid member data
-			RaidSummon:getRaidMembers()
-			if RaidSummonRaidMembersDB then
-
-				for RaidMembersDBindex, RaidMembersDBvalue in ipairs (RaidSummonRaidMembersDB) do
-
-					--check raid data for RaidSummon data
-					for RaidSummonSyncDBindex, RaidSummonSyncDBvalue in ipairs (RaidSummonSyncDB) do
-
-						--if player is found fill BrowseDB
-						if RaidSummonSyncDBvalue == RaidMembersDBvalue.rName then
-							RaidSummonBrowseDB[RaidSummonSyncDBindex] = {}
-							RaidSummonBrowseDB[RaidSummonSyncDBindex].rIndex = RaidMembersDBindex
-							RaidSummonBrowseDB[RaidSummonSyncDBindex].rName = RaidMembersDBvalue.rName
-							RaidSummonBrowseDB[RaidSummonSyncDBindex].rClass = RaidMembersDBvalue.rClass
-							RaidSummonBrowseDB[RaidSummonSyncDBindex].rfileName = RaidMembersDBvalue.rfileName
-
-							if RaidMembersDBvalue.rfileName == "WARLOCK" then
-								RaidSummonBrowseDB[RaidSummonSyncDBindex].rVIP = true
-							else
-								RaidSummonBrowseDB[RaidSummonSyncDBindex].rVIP = false
-							end
-						end
-					end
-				end
-			end
-
-			--sort warlocks first
-			table.sort(RaidSummonBrowseDB, function(a,b) return tostring(a.rVIP) > tostring(b.rVIP) end)
-
-		end
-
-		for i=1,40 do
-			if RaidSummonBrowseDB[i] then
-				_G["RaidSummon_NameList"..i.."TextName"]:SetText(RaidSummonBrowseDB[i].rName)
-
-				--Shamans are pink (like paladins) in Classic, we need to fix that, thanks to Molimo-Lucifron for testing
-				if RaidSummonBrowseDB[i].rfileName == "SHAMAN" then
-					_G["RaidSummon_NameList"..i.."TextName"]:SetTextColor(0.00, 0.44, 0.87, 1)
-				else
-					local r,g,b,img = GetClassColor(RaidSummonBrowseDB[i].rfileName)
-					_G["RaidSummon_NameList"..i.."TextName"]:SetTextColor(r, g, b, 1)
-				end
-
-				if not InCombatLockdown() then
-					_G["RaidSummon_NameList"..i]:Show()
-				else
-					RaidSummon:UpdateListCombatCheck()
-				end
+	local syncListSize = 0
+	for name in RaidSummonSyncList:GetValuesIterator() do
+		if RaidSummonMembersTable[name] then
+			syncListSize = syncListSize + 1
+			_G["RaidSummon_NameList"..syncListSize.."TextName"]:SetText(name)
+	
+			--Shamans are pink (like paladins) in Classic, we need to fix that, thanks to Molimo-Lucifron for testing
+			if RaidSummonMembersTable[name].rFileName == "SHAMAN" then
+				_G["RaidSummon_NameList"..syncListSize.."TextName"]:SetTextColor(0.00, 0.44, 0.87, 1)
 			else
-				if not InCombatLockdown() then
-					_G["RaidSummon_NameList"..i.."TextName"]:SetText("")
-					_G["RaidSummon_NameList"..i]:Hide()
-				else
-					RaidSummon:UpdateListCombatCheck()
-				end
+				local r,g,b,img = GetClassColor(RaidSummonMembersTable[name].rFileName)
+				_G["RaidSummon_NameList"..syncListSize.."TextName"]:SetTextColor(r, g, b, 1)
+			end
+	
+			if not InCombatLockdown() then
+				_G["RaidSummon_NameList"..syncListSize]:Show()
+			else
+				RaidSummon:UpdateListCombatCheck()
 			end
 		end
+	end
 
+	for i = syncListSize + 1, 40 do
 		if not InCombatLockdown() then
-
-			if not RaidSummonSyncDB[1] then
-				if RaidSummon_RequestFrame:IsVisible() then
-					RaidSummon_RequestFrame:Hide()
-				end
-			else
-				ShowUIPanel(RaidSummon_RequestFrame, 1)
-			end
+			_G["RaidSummon_NameList"..i.."TextName"]:SetText("")
+			_G["RaidSummon_NameList"..i]:Hide()
 		else
 			RaidSummon:UpdateListCombatCheck()
 		end
-        RaidSummon:updateWindowSize()
 	end
+
+	RaidSummon:updateWindowSize(syncListSize)
 end
 
-function RaidSummon:updateWindowSize()
-    local cnt = 0
-    for i=1,40 do
-        if _G["RaidSummon_NameList"..i.."TextName"]:GetText() then
-            cnt = cnt + 1
-        end
-    end
-    RaidSummon_RequestFrame:SetHeight(20+16*cnt)
+function RaidSummon:updateWindowSize(size)
+	if not InCombatLockdown() then
+		if not RaidSummonSyncList.start then
+			if RaidSummon_RequestFrame:IsVisible() then
+				RaidSummon_RequestFrame:Hide()
+			end
+		else
+			ShowUIPanel(RaidSummon_RequestFrame, 1)
+		end
+	else
+		RaidSummon:UpdateListCombatCheck()
+	end
+
+	RaidSummon_RequestFrame:SetHeight(20+16*size)
 end
 
---collects raid member information to RaidSummonRaidMembersDB
+--collects raid member information to RaidSummonMembersTable
 function RaidSummon:getRaidMembers()
-
+	print("getRaidMembers()")
 	if IsInRaid() then
 
 		local members = GetNumGroupMembers()
 
 		if (members > 0) then
-		RaidSummonRaidMembersDB = {}
+			RaidSummonMembersTable = {}
 
 			for i = 1, members do
-				local rName, rRank, rSubgroup, rLevel, rClass, rfileName = GetRaidRosterInfo(i)
-
-				if rName and rClass and rfileName then
-					RaidSummonRaidMembersDB[i] = {}
-					RaidSummonRaidMembersDB[i].rIndex = i
-					RaidSummonRaidMembersDB[i].rName = rName
-					RaidSummonRaidMembersDB[i].rClass = rClass
-					RaidSummonRaidMembersDB[i].rfileName = rfileName
+				local rName, rRank, rSubgroup, rLevel, rClass, rFileName = GetRaidRosterInfo(i)
+				if rName and rClass and rFileName then
+					RaidSummonMembersTable[rName] = { rIndex = i, rClass = rClass, rFileName = rFileName }
 				end
 			end
 		end
@@ -594,26 +530,6 @@ end
 function RaidSummon:hasValue (tab, val)
 	for i, v in ipairs (tab) do
 		if v == val then
-			return true
-		end
-	end
-	return false
-end
-
---checks for a key in a table with key names and values
-function RaidSummon:hasKey (tab, val)
-	for k, v in pairs (tab) do
-		if k == val then
-			return true
-		end
-	end
-	return false
-end
-
---checks for a vlaue in a table with subtables
-function RaidSummon:hasValueSub (tab, val)
-	for i, v in ipairs (tab) do
-		if v.rName == val then
 			return true
 		end
 	end
@@ -687,18 +603,18 @@ end
 
 function RaidSummon:ExecuteList()
 	--show msg if list is empty
-	if next(RaidSummonSyncDB) == nil then
+	if RaidSummonSyncList.start == nil then
 		print(L["OptionListEmpty"])
 	else
-		for i, v in ipairs(RaidSummonSyncDB) do
-			print(L["OptionList"])
-			print(tostring(v))
+		print(L["OptionList"])
+		for name in RaidSummonSyncList:GetValuesIterator() do
+			print(name)
 		end
 	end
 end
 
 function RaidSummon:ExecuteClear()
-	RaidSummonSyncDB = {}
+  RaidSummonSyncList = RaidSummonLinkedList:New()
 	RaidSummon:UpdateList()
 	print(L["OptionClear"])
 end
@@ -731,15 +647,13 @@ end
 
 function RaidSummon:ValuesRemoveSel(info)
 	local playerlist = {}
-	if RaidSummonSyncDB then
-		if next(RaidSummonSyncDB) == nil then
-			return playerlist
-		else
-			for i, v in ipairs(RaidSummonSyncDB) do
-				playerlist[v] = v
-			end
-			return playerlist
+	if RaidSummonSyncList.start == nil then
+		return playerlist
+	else
+		for name in RaidSummonSyncList:GetValuesIterator() do
+			playerlist[name] = name
 		end
+		return playerlist
 	end
 end
 
@@ -809,6 +723,88 @@ function RaidSummon:SetKWRemoveSel(info, input)
 end
 
 
+--List functions
+RaidSummonLinkedList = {start = nil}
+
+function RaidSummonLinkedList:New(o)
+	o = o or {}
+	setmetatable(o, self)
+	self.__index = self
+	return o
+end
+
+function RaidSummonLinkedList:Append(value)
+	if self.start == nil then
+		self.start = {value = value, next = nil}
+		return
+	end
+
+	local l = self.start
+	while l.next do
+		l = l.next
+	end
+	l.next = {value = value, next = nil}
+end
+
+function RaidSummonLinkedList:Prepend(value)
+	self.start = {value = value, next = self.start}
+end
+
+--Returns true if the value was in the list
+function RaidSummonLinkedList:Remove(value)
+	if not self.start then
+		return false
+	end
+
+	if self.start.value == value then
+		self.start = self.start.next
+		return true
+	end
+
+	local prev = self.start
+	local l = self.start
+
+	while l do 
+		if l.value == value then
+			prev.next = l.next
+			return true
+		end
+		prev = l
+		l = l.next
+	end
+
+	return false
+end
+
+function RaidSummonLinkedList:HasValue(value)
+	if not self.start then
+		return false
+	end
+
+	local l = self.start
+	while l do
+		if l.value == value then
+			return true
+		end
+		l = l.next
+	end
+
+	return false
+end
+
+function RaidSummonLinkedList:GetValuesIterator()
+	local l = self.start
+	return function()
+		if l then
+			local value = l.value
+			l = l.next
+			return value
+		else
+			return nil
+		end
+	end
+end
+
 --fill the frame with dummy data for testing
 --/script RaidSummon:DummyFill()
 function RaidSummon:DummyFill()
@@ -868,7 +864,7 @@ function RaidSummon:DummyFill()
 		_G["RaidSummon_NameList" .. i .. "TextName"]:SetTextColor(r, g, b, 1)
 		_G["RaidSummon_NameList".. i]:Show()
 	end
-    RaidSummon:updateWindowSize()
+    RaidSummon:updateWindowSize(10)
 
 end
 
