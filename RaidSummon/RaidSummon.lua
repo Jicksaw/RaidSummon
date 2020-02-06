@@ -212,21 +212,18 @@ function RaidSummon:OnInitialize()
 	--load version in RaidSummon Frame
 	RaidSummon_RequestFrameHeader:SetText(L["FrameHeader"](GetAddOnMetadata("RaidSummon", "Version")))
 
-	MSG_PREFIX_ADD = "RSAdd"
 	MSG_PREFIX_ADD_MANUAL = "RSAddManual"
 	MSG_PREFIX_REMOVE = "RSRemove"
 	MSG_PREFIX_REMOVE_MANUAL = "RSRemoveManual"
 	RaidSummonSyncList = RaidSummonLinkedList:New()
 	
 	--Ace3 Comm Channels max 16 chars
-	COMM_PREFIX_ADD = "RSADD"
 	COMM_PREFIX_ADD_MANUAL = "RSADDM"
 	COMM_PREFIX_REMOVE = "RSRM"
 	COMM_PREFIX_REMOVE_MANUAL = "RSRMM"
 	COMM_PREFIX_ADD_ALL = "RSADDALL"
 	
 	--Ace3 Comm Registers
-	self:RegisterComm(COMM_PREFIX_ADD) --add via 123 etc
 	self:RegisterComm(COMM_PREFIX_ADD_MANUAL) --add via /rs add
 	self:RegisterComm(COMM_PREFIX_REMOVE) --remove via summoning / right click
 	self:RegisterComm(COMM_PREFIX_REMOVE_MANUAL) --remove via ctrl + click
@@ -246,7 +243,7 @@ function RaidSummon:msgParser(eventName,...)
 		
 		for i, v in ipairs(self.db.profile.keywords) do
 			if string.find(text, v) then
-				RaidSummon:SendCommMessage(COMM_PREFIX_ADD, playerName2, "RAID")
+				RaidSummon:AddToSummonList(playerName2)
 			end		
 		end
 	end
@@ -271,30 +268,30 @@ function RaidSummon:GROUP_ROSTER_UPDATE(eventName,...)
 	RaidSummon:UpdateList()
 end
 
+function RaidSummon:AddToSummonList(member)
+	if RaidSummonSyncList:HasValue(member) then
+		return
+	end
+		
+	--check if player is in the raid
+	RaidSummon:getRaidMembers()
+	if RaidSummonMembersTable and RaidSummonMembersTable[member] then
+		if RaidSummonMembersTable[member].rFileName == "WARLOCK" then
+			RaidSummonSyncList:Prepend(member)
+		else
+			RaidSummonSyncList:Append(member)
+		end
+		RaidSummon:UpdateList()
+	end
+end
+
 --Ace3 Comm
 function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 	if not prefix then
 		return
 	end
 
-	if prefix == COMM_PREFIX_ADD then
-		print("COMM_PREFIX_ADD "..message)
-		--only add player once
-		if not RaidSummonSyncList:HasValue(message) then
-			--check if player is in the raid
-			RaidSummon:getRaidMembers()
-			if RaidSummonMembersTable and RaidSummonMembersTable[message] then
-				if RaidSummonMembersTable[message].rFileName == "WARLOCK" then
-					RaidSummonSyncList:Prepend(message)
-				else
-					RaidSummonSyncList:Append(message)
-				end
-				RaidSummon:UpdateList()
-			end
-		else
-			print("Player already in list: " .. message)
-		end
-	elseif prefix == COMM_PREFIX_ADD_MANUAL then
+	if prefix == COMM_PREFIX_ADD_MANUAL then
 		print("COMM_PREFIX_ADD_MANUAL "..message)
 		--only add player once
 		if not RaidSummonSyncList:HasValue(message) then
