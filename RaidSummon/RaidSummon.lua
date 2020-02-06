@@ -170,11 +170,7 @@ function RaidSummon:OnEnable()
 	self:RegisterEvent("GROUP_LEFT", "GroupEvent")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 	self:RegisterEvent("CHAT_MSG_RAID", "msgParser")
-	self:RegisterEvent("CHAT_MSG_PARTY", "msgParser")
 	self:RegisterEvent("CHAT_MSG_RAID_LEADER", "msgParser")
-	self:RegisterEvent("CHAT_MSG_SAY", "msgParser")
-	self:RegisterEvent("CHAT_MSG_YELL", "msgParser")
-	self:RegisterEvent("CHAT_MSG_WHISPER", "msgParser")
 	
 	--Right Click Hook
 	local className, classFilename, classID = UnitClass("player")
