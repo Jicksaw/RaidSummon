@@ -292,7 +292,7 @@ function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 	end
 
 	if prefix == COMM_PREFIX_ADD_MANUAL then
-		print("COMM_PREFIX_ADD_MANUAL "..message)
+		--print("COMM_PREFIX_ADD_MANUAL "..message)
 		--only add player once
 		if not RaidSummonSyncList:HasValue(message) then
 			--check if player is in the raid
@@ -308,18 +308,18 @@ function RaidSummon:OnCommReceived(prefix, message, distribution, sender)
 			end
 		end
 	elseif prefix == COMM_PREFIX_REMOVE then
-		print("COMM_PREFIX_REMOVE "..message)
+		--print("COMM_PREFIX_REMOVE "..message)
 		if RaidSummonSyncList:Remove(message) then
 			RaidSummon:UpdateList()
 		end
 	elseif prefix == COMM_PREFIX_REMOVE_MANUAL then
-		print("COMM_PREFIX_REMOVE_MANUAL "..message)
+		--print("COMM_PREFIX_REMOVE_MANUAL "..message)
 		if RaidSummonSyncList:Remove(message) then
 			print(L["MemberRemoved"](message,sender))
 			RaidSummon:UpdateList()
 		end
 	elseif prefix == COMM_PREFIX_ADD_ALL then
-		print("COMM_PREFIX_ADD_ALL "..message)
+		--print("COMM_PREFIX_ADD_ALL "..message)
 		if IsInRaid() then
 			local members = GetNumGroupMembers()
 			if (members > 0) then
@@ -501,7 +501,6 @@ end
 
 --collects raid member information to RaidSummonMembersTable
 function RaidSummon:getRaidMembers()
-	print("getRaidMembers()")
 	if IsInRaid() then
 
 		local members = GetNumGroupMembers()
@@ -858,7 +857,6 @@ function RaidSummon:DummyFill()
 		_G["RaidSummon_NameList".. i]:Show()
 	end
     RaidSummon:updateWindowSize(10)
-
 end
 
 --Hook Functions
